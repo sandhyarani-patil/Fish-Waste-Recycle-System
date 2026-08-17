@@ -1,6 +1,4 @@
 
-हो भाई. तुझ्या आतापर्यंतच्या **Fish Waste Recycle System** project flow, modules, JWT, role-based authorization, CRUD, order lifecycle, dashboard, validation, exception handling, Postman testing आणि MySQL यावर based एक **proper interview-level README.md** देतो.
-
 # 🐟 Fish Waste Recycle System
 
 A **Spring Boot REST API based Fish Waste Recycle Management System** that connects companies requiring fish waste with sellers who provide recyclable fish waste.
