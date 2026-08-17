@@ -1,5 +1,8 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.impl;
 
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.BadRequestException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.DuplicateResourceException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.ResourceNotFoundException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.CompanyDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.CompanyRequestDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.Company;
@@ -37,7 +40,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     public CompanyDto getCompanyId(Long companyId) {
-        Company company=companyRepository.findById(companyId).orElseThrow(()->new IllegalArgumentException("Company not found with id"+companyId));
+        Company company=companyRepository.findById(companyId).orElseThrow(()->new ResourceNotFoundException("Company not found with id: " + companyId));
         return modelMapper.map(company,CompanyDto.class);
     }
 
@@ -45,10 +48,17 @@ public class CompanyServiceImpl implements CompanyService {
     public CompanyDto createNewCompany(CompanyRequestDto companyRequestDto) {
 
         User user = userRepository.findById(companyRequestDto.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("user not found"));
+                .orElseThrow(() ->  new ResourceNotFoundException("User not found with id: " + companyRequestDto.getUserId()));;
 
         if (user.getRole() != Role.COMPANY) {
-            throw new IllegalArgumentException("User is not a company");
+            throw new BadRequestException("User is not registered as a company");
+        }
+        if (companyRepository.existsByRegistrationNo(companyRequestDto.getRegistrationNo())) {
+            throw new DuplicateResourceException("Registration number already exists.");
+        }
+
+        if (companyRepository.existsByUser_Id(companyRequestDto.getUserId())) {
+            throw new DuplicateResourceException("Company profile already exists for this user.");
         }
 
         // ModelMapper ऐवजी मॅन्युअल मॅपिंग (सुरक्षित मार्ग)
@@ -71,7 +81,7 @@ public class CompanyServiceImpl implements CompanyService {
     public void deleteCompanyById(Long companyId) {
         if(!companyRepository.existsById(companyId))
         {
-            throw new IllegalArgumentException("Company does not exist by id:" +companyId);
+            throw new ResourceNotFoundException("Company not found with id: " + companyId);
         }
         companyRepository.deleteById(companyId);
     }
@@ -80,9 +90,8 @@ public class CompanyServiceImpl implements CompanyService {
     public CompanyDto updateCompany(Long companyId, CompanyRequestDto companyRequestDto) {
 
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Company not found with id: " + companyId));
-
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException("Company not found with id: " + companyId));
         company.setCompanyName(companyRequestDto.getCompanyName());
         company.setRegistrationNo(companyRequestDto.getRegistrationNo());
         company.setAddress(companyRequestDto.getAddress());
@@ -97,8 +106,8 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     public CompanyDto updatePartialCompany(Long companyId, Map<String, Object> updates) {
         Company company = companyRepository.findById(companyId).
-                orElseThrow(() -> new IllegalArgumentException("Company not found with id:" +companyId));
-
+                orElseThrow(() ->
+                        new ResourceNotFoundException("Company not found with id: " + companyId));
         updates.forEach((field, value) -> {
             switch (field) {
 
@@ -123,7 +132,7 @@ public class CompanyServiceImpl implements CompanyService {
                     break;
 
                 default:
-                    throw new IllegalArgumentException("Field '" + field + "' is not supported");
+                    throw new BadRequestException("Field '" + field + "' is not supported for update");
             }
         });
         Company savedCompany=companyRepository.save(company);

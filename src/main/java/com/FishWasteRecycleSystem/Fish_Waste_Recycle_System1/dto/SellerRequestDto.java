@@ -13,7 +13,7 @@ public class SellerRequestDto {
     @Size(min = 3, max = 100, message = "Shop name should be between 3 and 100 characters")
     private String shopName;
 
-    //@NotNull(message = "Available fish waste quantity is required")
+    @NotNull(message = "Available fish waste quantity is required")
     @Positive(message = "Available fish waste quantity must be greater than 0")
     private Integer availableFishWasteKg;
 

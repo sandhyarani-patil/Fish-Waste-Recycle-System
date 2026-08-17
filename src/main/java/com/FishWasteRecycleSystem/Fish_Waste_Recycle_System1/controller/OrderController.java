@@ -79,4 +79,13 @@ public class OrderController {
                 orderService.cancelOrder(orderId)
         );
     }
+
+    @PatchMapping("/{orderId}/accept")
+    public ResponseEntity<OrderDto> acceptOrder(
+            @PathVariable Long orderId) {
+
+        return ResponseEntity.ok(
+                orderService.acceptOrder(orderId)
+        );
+    }
 }

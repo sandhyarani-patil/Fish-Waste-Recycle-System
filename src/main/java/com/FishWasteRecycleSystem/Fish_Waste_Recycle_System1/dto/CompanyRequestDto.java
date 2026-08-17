@@ -21,6 +21,8 @@ public class CompanyRequestDto {
 
 
     @NotBlank(message = "Address is required")
+    @Size(min = 3, max = 255,
+            message = "Address should be between 3 and 255 characters")
     private String address;
 
 
@@ -30,10 +32,10 @@ public class CompanyRequestDto {
 
 
     @NotNull(message = "Collection capacity is required")
-    @Min(value = 1, message = "Collection capacity must be greater than 0")
+    @Positive(message = "Collection capacity must be greater than 0")
     private Long collectionCapacityKg;
 
-
-    @NotNull(message = "User id is required")
+    @NotNull(message = "User ID is required")
+    @Positive(message = "User ID must be greater than 0")
     private Long userId;
 }

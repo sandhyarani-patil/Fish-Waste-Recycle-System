@@ -12,18 +12,23 @@ public class UserRequestDto {
     private String name;
 
 
-    @Email
     @NotBlank(message = "Email is required")
+    @Email(message = "Enter a valid email address")
     private String email;
 
-    @NotBlank
-    @Size(min=8, max=20)
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 20,
+            message = "Password must be between 8 and 20 characters")
     private String password;
 
 
-    @NotNull
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter a valid 10-digit phone number")
+    @NotBlank(message = "Phone number is required")
+    @Pattern(
+            regexp = "^[6-9]\\d{9}$",
+            message = "Enter a valid 10-digit phone number"
+    )
     private String phoneNo;
 
+    @NotNull(message = "Role is required")
     private Role role;
 }

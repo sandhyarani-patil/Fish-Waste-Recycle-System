@@ -1,5 +1,8 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.impl;
 
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.BadRequestException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.DuplicateResourceException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.ResourceNotFoundException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.SellerDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.SellerRequestDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.Seller;
@@ -46,7 +49,9 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public SellerDto getSellerById(Long sellerId) {
-        Seller seller=sellerRepository.findById(sellerId).orElseThrow(()->new IllegalArgumentException("seller not found with id"+sellerId));
+        Seller seller = sellerRepository.findById(sellerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Seller not found with id: " + sellerId));
         return modelMapper.map(seller,SellerDto.class);
     }
 
@@ -55,11 +60,18 @@ public class SellerServiceImpl implements SellerService {
 
         // १. युझर शोधणे
         User user = userRepository.findById(sellerRequestDto.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("user not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found with id: " + sellerRequestDto.getUserId()));
+
+
 
         // २. रोल चेक करणे
         if (user.getRole() != Role.SELLER) {
-            throw new IllegalArgumentException("User is not a seller");
+            throw new BadRequestException("User is not registered as a seller");
+        }
+
+        if (sellerRepository.existsByUser_Id(sellerRequestDto.getUserId())) {
+            throw new DuplicateResourceException("Seller profile already exists for this user.");
         }
 
         // ३. मॅन्युअली नवीन Seller ऑब्जेक्ट तयार करणे (ModelMapper न वापरता)
@@ -69,6 +81,7 @@ public class SellerServiceImpl implements SellerService {
         newSeller.setAddress(sellerRequestDto.getAddress());
         newSeller.setShopName(sellerRequestDto.getShopName());
         newSeller.setAvailableFishWasteKg(sellerRequestDto.getAvailableFishWasteKg());
+
 
         // युझर मॅप करणे
         newSeller.setUser(user);
@@ -82,9 +95,8 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public void deleteSellerById(Long sellerId) {
-        if(!sellerRepository.existsById(sellerId))
-        {
-            throw new IllegalArgumentException("Seller does not exist by id:" +sellerId);
+        if (!sellerRepository.existsById(sellerId)) {
+            throw new ResourceNotFoundException("Seller not found with id: " + sellerId);
         }
         sellerRepository.deleteById(sellerId);
     }
@@ -93,8 +105,8 @@ public class SellerServiceImpl implements SellerService {
     public SellerDto updateSeller(Long sellerId, SellerRequestDto sellerRequestDto) {
         // 1. डेटाबेसमधून जुना सेलर शोधा
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found with id: " + sellerId));
-
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Seller not found with id: " + sellerId));
         // 2. ModelMapper ऐवजी मॅन्युअली फक्त आवश्यक डेटा सेट करा
         // (लक्षात घ्या: आपण इथे आयडी बदलत नाही आहोत!)
         seller.setShopName(sellerRequestDto.getShopName());
@@ -110,9 +122,9 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public SellerDto updatePartialSeller(Long sellerId, Map<String, Object> updates) {
-        Seller seller = sellerRepository.findById(sellerId).
-                orElseThrow(() -> new IllegalArgumentException("Seller not found with id:" +sellerId));
-
+        Seller seller = sellerRepository.findById(sellerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Seller not found with id: " + sellerId));
         updates.forEach((field, value) -> {
             switch (field) {
 
@@ -129,7 +141,7 @@ public class SellerServiceImpl implements SellerService {
                     break;
 
                 default:
-                    throw new IllegalArgumentException("Field '" + field + "' is not supported");
+                    throw new BadRequestException("Field '" + field + "' is not supported for update");
             }
         });
         Seller savedseller=sellerRepository.save(seller);

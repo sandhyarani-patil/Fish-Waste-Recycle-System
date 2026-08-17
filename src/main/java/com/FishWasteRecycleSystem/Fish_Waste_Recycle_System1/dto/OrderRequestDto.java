@@ -15,10 +15,12 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class OrderRequestDto {
 
-    @NotNull(message = "Listing Id is required")
+    @NotNull(message = "Listing ID is required")
+    @Positive(message = "Listing ID must be greater than 0")
     private Long listingId;
 
-    @NotNull(message = "Requirement Id is required")
+    @NotNull(message = "Requirement ID is required")
+    @Positive(message = "Requirement ID must be greater than 0")
     private Long requirementId;
 
     @NotNull(message = "Order quantity is required")

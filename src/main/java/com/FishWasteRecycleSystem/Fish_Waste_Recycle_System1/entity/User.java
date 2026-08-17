@@ -19,7 +19,7 @@ public class User {
     @Column(unique = true,nullable = false)
     private String email;
     private String password;
-    private Long phoneNo;
+    private String phoneNo;
 
     @Enumerated(EnumType.STRING)
     private Role role;

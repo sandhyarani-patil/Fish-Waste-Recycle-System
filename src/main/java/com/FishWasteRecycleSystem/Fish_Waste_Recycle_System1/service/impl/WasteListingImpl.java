@@ -1,5 +1,7 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.impl;
 
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.BadRequestException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.ResourceNotFoundException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.WasteListingDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.WasteListingRequestDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.Seller;
@@ -45,8 +47,7 @@ public class WasteListingImpl implements WasteListingService {
 
         WasteListing wasteListing = wasteListingRepository.findById(wasteListingId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Waste Listing not found with id: " + wasteListingId));
-
+                        new ResourceNotFoundException("Waste Listing not found with id: " + wasteListingId));
         WasteListingDto dto = modelMapper.map(wasteListing, WasteListingDto.class);
         dto.setSellerId(wasteListing.getSeller().getSellerId());
 
@@ -57,7 +58,9 @@ public class WasteListingImpl implements WasteListingService {
     public WasteListingDto createNewWasteListing(WasteListingRequestDto wasteListingRequestDto) {
 
         Seller seller = sellerRepository.findById(wasteListingRequestDto.getSellerId())
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Seller not found with id: " + wasteListingRequestDto.getSellerId()));
 
         WasteListing newListing = new WasteListing();
 
@@ -88,7 +91,10 @@ public class WasteListingImpl implements WasteListingService {
     public void deleteWasteListingById(Long wasteListingId) {
 
         if (!wasteListingRepository.existsById(wasteListingId)) {
-            throw new IllegalArgumentException("Waste Listing does not exist with id: " + wasteListingId);
+            if (!wasteListingRepository.existsById(wasteListingId)) {
+                throw new ResourceNotFoundException(
+                        "Waste Listing not found with id: " + wasteListingId);
+            }
         }
 
         wasteListingRepository.deleteById(wasteListingId);
@@ -99,8 +105,9 @@ public class WasteListingImpl implements WasteListingService {
                                               WasteListingRequestDto wasteListingRequestDto) {
 
         WasteListing wasteListing = wasteListingRepository.findById(wasteListingId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Waste Listing not found with id: " + wasteListingId));
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Waste Listing not found with id: " + wasteListingId));
 
         wasteListing.setFishType(wasteListingRequestDto.getFishType());
         wasteListing.setWasteCategory(wasteListingRequestDto.getWasteCategory());
@@ -112,8 +119,9 @@ public class WasteListingImpl implements WasteListingService {
         wasteListing.setAvailableDate(wasteListingRequestDto.getAvailableDate());
 
         Seller seller = sellerRepository.findById(wasteListingRequestDto.getSellerId())
-                .orElseThrow(() -> new IllegalArgumentException("Seller not found"));
-
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Seller not found with id: " + wasteListingRequestDto.getSellerId()));
         wasteListing.setSeller(seller);
         wasteListing.setUpdatedAt(LocalDateTime.now());
 
@@ -131,8 +139,8 @@ public class WasteListingImpl implements WasteListingService {
 
         WasteListing wasteListing = wasteListingRepository.findById(wasteListingId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Waste Listing not found with id: " + wasteListingId));
-
+                        new ResourceNotFoundException(
+                                "Waste Listing not found with id: " + wasteListingId));
         updates.forEach((field, value) -> {
 
             switch (field) {
@@ -155,7 +163,8 @@ public class WasteListingImpl implements WasteListingService {
 
                 case "status" -> wasteListing.setStatus(FishWasteStatus.valueOf(value.toString()));
 
-                default -> throw new IllegalArgumentException("Field '" + field + "' is not supported");
+                default ->throw new BadRequestException(
+                        "Field '" + field + "' is not supported");
             }
         });
 

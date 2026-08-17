@@ -1,7 +1,6 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto;
 
-import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.enums.RequirementStatus;
-import jakarta.validation.constraints.DecimalMin;
+
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,6 +19,8 @@ import java.time.LocalDate;
 public class RequirementRequestDto {
 
     @NotBlank(message = "Waste type is required")
+    @Size(min = 2, max = 50,
+            message = "Waste type should be between 2 and 50 characters")
     private String wasteType;
 
     @NotNull(message = "Quantity is required")
@@ -31,7 +32,7 @@ public class RequirementRequestDto {
     private String location;
 
     @NotNull(message = "Budget is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Budget must be greater than 0")
+    @Positive(message = "Budget must be greater than 0")
     private BigDecimal budget;
 
     @Size(max = 500, message = "Description cannot exceed 500 characters")
@@ -41,6 +42,7 @@ public class RequirementRequestDto {
     private LocalDate requiredBefore;
 
 
-    @NotNull(message = "Company Id is required")
+    @NotNull(message = "Company ID is required")
+    @Positive(message = "Company ID must be greater than 0")
     private Long companyId;
 }

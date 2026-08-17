@@ -1,11 +1,14 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.impl;
 
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.BadRequestException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.ResourceNotFoundException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.RequirementDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.RequirementRequestDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.Company;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.Requirement;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.enums.RequirementStatus;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.repository.CompanyRepository;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.repository.OrderRepository;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.repository.RequirementRepository;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.RequirementService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import java.util.Map;
 public class RequirementServiceImpl implements RequirementService {
 
     private final RequirementRepository requirementRepository;
+    private final OrderRepository orderRepository;
     private final CompanyRepository companyRepository;
     private final ModelMapper modelMapper;
 
@@ -45,8 +49,7 @@ public class RequirementServiceImpl implements RequirementService {
 
         Requirement requirement = requirementRepository.findById(requirementId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Requirement not found with id: " + requirementId));
-
+                        new ResourceNotFoundException("Requirement not found with id: " + requirementId));
         RequirementDto dto = modelMapper.map(requirement,RequirementDto.class);
         dto.setCompanyId(requirement.getCompany().getCompanyId());
         dto.setCompanyName(requirement.getCompany().getCompanyName());
@@ -58,7 +61,9 @@ public class RequirementServiceImpl implements RequirementService {
     public RequirementDto createNewRequirement(RequirementRequestDto requirementRequestDto) {
 
         Company company = companyRepository.findById(requirementRequestDto.getCompanyId())
-                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Company not found with id: " + requirementRequestDto.getCompanyId()));
 
         Requirement newRequirement = new Requirement();
 
@@ -86,10 +91,16 @@ public class RequirementServiceImpl implements RequirementService {
     public void deleteRequirementById(Long requirementId) {
 
         if (!requirementRepository.existsById(requirementId)) {
-            throw new IllegalArgumentException("Requirement does not exist with id: " + requirementId);
+            throw new ResourceNotFoundException(
+                    "Requirement not found with id: " + requirementId);
         }
 
-      requirementRepository.deleteById(requirementId);
+        if (orderRepository.existsByRequirementRequirementId(requirementId)) {
+            throw new BadRequestException(
+                    "Requirement cannot be deleted because it is already used in an order.");
+        }
+
+        requirementRepository.deleteById(requirementId);
     }
 
     @Override
@@ -98,7 +109,8 @@ public class RequirementServiceImpl implements RequirementService {
 
         Requirement requirement = requirementRepository.findById(requiementId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Requirement not found with id: " + requiementId));
+                        new ResourceNotFoundException(
+                                "Requirement not found with id: " + requiementId));
 
         requirement.setWasteType(requirementRequestDto.getWasteType());
         requirement.setQuantity(requirementRequestDto.getQuantity());
@@ -108,7 +120,9 @@ public class RequirementServiceImpl implements RequirementService {
         requirement.setRequiredBefore(requirementRequestDto.getRequiredBefore());
 
        Company company = companyRepository.findById(requirementRequestDto.getCompanyId())
-                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+               .orElseThrow(() ->
+                       new ResourceNotFoundException(
+                               "Company not found with id: " + requirementRequestDto.getCompanyId()));
 
         requirement.setCompany(company);
 
@@ -127,8 +141,9 @@ public class RequirementServiceImpl implements RequirementService {
                                                      Map<String, Object> updates) {
 
        Requirement requirement = requirementRepository.findById(requirementId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Requirement not found with id: " + requirementId));
+               .orElseThrow(() ->
+                       new ResourceNotFoundException(
+                               "Requirement not found with id: " + requirementId));
 
         updates.forEach((field, value) -> {
 
@@ -136,26 +151,75 @@ public class RequirementServiceImpl implements RequirementService {
 
                 case "companyId" -> {
                     Company company = companyRepository.findById(Long.valueOf(value.toString()))
-                            .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+                            .orElseThrow(() ->
+                                    new ResourceNotFoundException(
+                                            "Company not found with id: " + value));
                     requirement.setCompany(company);
                 }
 
-                case "wasteType" -> requirement.setWasteType((String) value);
+                case "wasteType" -> {
+                    String wasteType = value.toString().trim();
 
-                case "quantity" -> requirement.setQuantity((Double) value);
+                    if (wasteType.isBlank()) {
+                        throw new BadRequestException("Waste type is required.");
+                    }
 
-                case "location" -> requirement.setLocation((String) value);
+                    requirement.setWasteType(wasteType);
+                }
 
-                case "budget" -> requirement.setBudget((BigDecimal) value);
+                case "quantity" -> {
+                    Double quantity = ((Number) value).doubleValue();
 
-                case "description" ->requirement.setDescription((String) value);
+                    if (quantity <= 0) {
+                        throw new BadRequestException("Quantity must be greater than 0.");
+                    }
 
-                case "requiredBefore" -> requirement.setRequiredBefore(LocalDate.parse(value.toString()));
+                    requirement.setQuantity(quantity);
+                }
+                case "location" -> {
+                    String location = value.toString().trim();
+
+                    if (location.isBlank()) {
+                        throw new BadRequestException("Location is required.");
+                    }
+
+                    requirement.setLocation(location);
+                }
+                case "budget" -> {
+                    BigDecimal budget = new BigDecimal(value.toString());
+
+                    if (budget.compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new BadRequestException("Budget must be greater than 0.");
+                    }
+
+                    requirement.setBudget(budget);
+                }
+                case "description" -> {
+                    String description = value.toString().trim();
+
+                    if (description.isBlank()) {
+                        throw new BadRequestException("Description is required.");
+                    }
+
+                    requirement.setDescription(description);
+                }
+
+                case "requiredBefore" -> {
+                    LocalDate date = LocalDate.parse(value.toString());
+
+                    if (date.isBefore(LocalDate.now())) {
+                        throw new BadRequestException("Required before date cannot be in the past.");
+                    }
+
+                    requirement.setRequiredBefore(date);
+                }
 
                 case "status" -> requirement.setStatus(RequirementStatus.valueOf(value.toString()));
 
-                default -> throw new IllegalArgumentException("Field '" + field + "' is not supported");
+                default -> throw new BadRequestException(
+                        "Field '" + field + "' is not supported for update");
             }
+            Requirement savedRequirement = requirementRepository.save(requirement);
         });
 
         requirement.setCreatedAt(LocalDateTime.now());

@@ -1,5 +1,8 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.impl;
 
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.BadRequestException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.ResourceNotFoundException;
+import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.exception.DuplicateResourceException;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.UserDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto.UserRequestDto;
 import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.entity.User;
@@ -8,6 +11,7 @@ import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.service.UserService
 import lombok.RequiredArgsConstructor;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +22,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
+    private final PasswordEncoder passwordEncoder;
 
 
     public List<UserDto> getAllUser(){
@@ -33,43 +38,56 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserById(Long id) {
-        User user=userRepository.findById(id).orElseThrow(()->new IllegalArgumentException("user not found with id"+id));
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found with id: " + id));
         return modelMapper.map(user,UserDto.class);
     }
     @Override
-    public UserDto createNewUser(UserRequestDto addUserRequestDto) {
-        User newUser=modelMapper.map(addUserRequestDto,User.class);
-        User user=userRepository.save(newUser);
-        return modelMapper.map(user,UserDto.class);
-    }
+    public UserDto createNewUser(UserRequestDto userRequestDto) {
 
+        User newUser = modelMapper.map(userRequestDto, User.class);
+
+        newUser.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
+
+        User savedUser = userRepository.save(newUser);
+
+        return modelMapper.map(savedUser, UserDto.class);
+    }
     @Override
     public void deleteUserById(Long id) {
         if(!userRepository.existsById(id))
         {
-            throw new IllegalArgumentException("Student does not exist by id:" +id);
+            throw new ResourceNotFoundException("User not found with id: " + id);
         }
         userRepository.deleteById(id);
     }
 
     @Override
     public UserDto updateUser(Long id, UserRequestDto userRequestDto) {
-        User user=userRepository.findById(id).
-                orElseThrow(()->new IllegalArgumentException("User not found with id"+id));
-        modelMapper.map(userRequestDto,user);
-        userRepository.save(user);
 
-        user=userRepository.save(user);
-        return modelMapper.map(user,UserDto.class);
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found with id: " + id));
+
+        user.setName(userRequestDto.getName());
+        user.setEmail(userRequestDto.getEmail());
+        user.setPhoneNo(userRequestDto.getPhoneNo());
+        user.setRole(userRequestDto.getRole());
+
+        // Password encrypt करून save कर
+        user.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
+
+        User updatedUser = userRepository.save(user);
+
+        return modelMapper.map(updatedUser, UserDto.class);
     }
-
     @Override
     public UserDto updatePartialUser(Long id, Map<String, Object> updates) {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("User not found with id: " + id));
-
+                        new ResourceNotFoundException("User not found with id: " + id));
         updates.forEach((field, value) -> {
 
             switch (field) {
@@ -83,16 +101,16 @@ public class UserServiceImpl implements UserService {
                     break;
 
                 case "phoneNo":
-                    user.setPhoneNo(((Number) value).longValue());
+                    user.setPhoneNo((String) value);
                     break;
 
                 case "password":
                 case "role":
                 case "id":
-                    throw new IllegalArgumentException(field + " cannot be updated using PATCH API.");
+                    throw new BadRequestException(field + " cannot be updated using PATCH API.");
 
                 default:
-                    throw new IllegalArgumentException("Field '" + field + "' is not supported.");
+                    throw new BadRequestException("Field '" + field + "' is not supported.");
             }
         });
 

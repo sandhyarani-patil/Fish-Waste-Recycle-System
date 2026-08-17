@@ -1,7 +1,5 @@
 package com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.dto;
 
-import com.FishWasteRecycleSystem.Fish_Waste_Recycle_System1.enums.Role;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,12 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserDto {
+public class LoginResponseDto {
 
-    private Long id;
-    private String name;
+    private String token;
+    private String role;
     private String email;
-//    private String password;
-    private String phoneNo;
-    private Role role;
 }
